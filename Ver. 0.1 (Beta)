@@ -1,0 +1,660 @@
+#Modules
+from tkinter import *
+from getpass import getpass
+from colorama import init
+from colorama import Fore
+import os
+import shutil
+import sys
+import string
+import random
+from cryptography.fernet import Fernet 
+import time
+import mysql.connector
+import _cffi_backend
+
+
+
+#Récupère le chemin vers le programme 
+
+#root = os.path.dirname(__file__) -> A utiliser si c'est pas un executable
+
+if getattr(sys, 'frozen', False):
+	# frozen
+    root = os.path.dirname(sys.executable)
+else:
+    # unfrozen
+	root = os.path.dirname(os.path.realpath(__file__))
+
+#Récupère le chemin vers le dossier où se trouve le .py
+path = os.path.join(root)
+
+#Récupération de l'emplacement de la clé / création de la clé
+
+
+
+
+
+class psswd:
+
+	cursor = ""
+	conn = ""
+	nom = ""
+
+#Essaye de récuperer la clé de cryptage, la créé si elle n'existe pas.
+	try:
+		path = os.path.join("cle")
+		path = os.path.join(root, path)
+		cle = open(path, "r")
+		key = cle.read()
+		key = key.encode("utf-8")
+
+
+	except:
+		print(Fore.RED + "\nC'est la première fois que vous lancez le gestionnaire de mots de passe."\
+			"Une clé de cryptage a été génerée dans le fichier 'cle'. Ne touchez pas à ce fichier ! \n"\
+			"Vous aurez besoin de votre administrateur système par la suite.")
+		print(Fore.RESET)
+		path = os.path.join("cle")
+		path = os.path.join(root, path)
+		cle = open(path, "w")
+		key = Fernet.generate_key()
+		key = key.decode("utf-8")
+		cle.write(key)
+		cle.close()
+		print(key)
+		key = key.encode("utf-8")
+
+	f = Fernet(key)
+
+### Initialisation de la fenêtre principale ###
+	
+	def __init__(self):
+		self.root = Tk()
+		self.root.title("Psswd Ver. 0.1")
+		self.root.geometry("1024x768")
+		self.root.resizable(0,0)
+		self.login_window()
+		self.root.mainloop()
+
+
+### Fenêtre de connexion ###
+
+	def login_window(self):
+
+		width = 1024
+		height = 768
+		self.image = PhotoImage(file = "/home/luka/Documents/Progs_python/Psswd_Tkinter/Psswd_Design/Fichier.PNG/Menus/psswd_login.png")
+		self.canvas = Canvas(self.root, width = width, height = height)
+		self.canvas.create_image(width/2, height/2, image = self.image)
+		self.canvas.pack()
+
+		self.nom_entry = Entry(self.canvas, bg = "White", justify = "center", highlightthickness = 0, bd = 0)
+		self.nom_entry.place(anchor = "c", width = 192 , height = 19, x = 511.3, y = 470.5 )
+
+		self.mdp_entry = Entry(self.canvas, bg = "White", justify = "center", highlightthickness = 0, bd = 0)
+		self.mdp_entry.place(anchor = "c", width = 192 , height = 19, x = 511.5, y = 551.5 )
+
+		self.ajouter = Button(self.canvas, highlightthickness = 0, bd = 0)
+		self.bouton_ajouter= PhotoImage(file = "/home/luka/Documents/Progs_python/Psswd_Tkinter/Psswd_Design/Fichier.PNG/Boutons&Messages/bouton_login.png")
+		self.ajouter.config(image = self.bouton_ajouter, command = self.login)
+		self.ajouter.place(anchor = "c", width = 269.51 , height = 75.35, x = 514.775, y = 661.229 )
+
+		self.oubli = Button(self.canvas, bg = "#162c3a", activebackground = "#162c3a", highlightthickness = 0, bd = 0)
+		self.bouton_oubli= PhotoImage(file = "/home/luka/Documents/Progs_python/Psswd_Tkinter/Psswd_Design/Fichier.PNG/Boutons&Messages/mdp_oublie.png")
+		self.oubli.config(image = self.bouton_oubli)
+		self.oubli.place(anchor = "c",  x = 511, y = 576.239 )
+
+		self.nouveau = Button(self.canvas, bg = "#162c3a", activebackground = "#162c3a", highlightthickness = 0, bd = 0)
+		self.bouton_nouveau= PhotoImage(file = "/home/luka/Documents/Progs_python/Psswd_Tkinter/Psswd_Design/Fichier.PNG/Boutons&Messages/creer_compte.png")
+		self.nouveau.config(image = self.bouton_nouveau, command = self.login_root_window)
+		self.nouveau.place(anchor = "c",  width = 400, height = 40, x = 520, y = 730.739 )
+		
+	def login(self):
+		self.nom = self.nom_entry.get()
+		print(type(self.nom))
+		self.mdp = self.mdp_entry.get()
+		print(self.nom, self.mdp)
+		psswd.nom = self.nom
+
+		try:
+			psswd.conn = mysql.connector.connect(user = self.nom, password = self.mdp,
+								host = 'localhost',
+								database = 'psswd_db')
+			psswd.cursor = psswd.conn.cursor()
+			command_menu = self.nom_entry.forget(), self.mdp_entry.forget(), self.ajouter.place_forget(), self.canvas.forget()
+			self.mainmenu()
+
+		except:
+			print(Fore.RED + "Mauvais identifiant ou mot de passe !")
+			print(Fore.RESET)
+
+			self.nom_entry.delete(0, "end")
+			self.mdp_entry.delete(0, "end")
+
+			self.erreur_txt = PhotoImage(file = "/home/luka/Documents/Progs_python/Psswd_Tkinter/Psswd_Design/Fichier.PNG/Boutons&Messages/mauvais_identifiant.png")
+			self.canvas.create_image(511, 402, anchor = "c", image = self.erreur_txt)
+
+#COnnexion en tant qu'administrateur pour ajouter un nouvel utilisateur.
+
+	def login_root_window(self):
+		self.canvas.forget()
+
+		width = 1024
+		height = 768
+		self.image = PhotoImage(file = "/home/luka/Documents/Progs_python/Psswd_Tkinter/Psswd_Design/Fichier.PNG/Menus/psswd_nvutilisateur.png")
+		self.canvas = Canvas(self.root, width = width, height = height)
+		self.canvas.create_image(width/2, height/2, image = self.image)
+		self.canvas.pack()
+
+		self.nom_entry = Entry(self.canvas, bg = "White", justify = "center", highlightthickness = 0, bd = 0)
+		self.nom_entry.place(anchor = "c", width = 192 , height = 19, x = 511.3, y = 470.5 )
+
+		self.mdp_entry = Entry(self.canvas, bg = "White", justify = "center", highlightthickness = 0, bd = 0)
+		self.mdp_entry.place(anchor = "c", width = 192 , height = 19, x = 511.5, y = 551.5 )
+
+		self.ajouter = Button(self.canvas, highlightthickness = 0, bd = 0)
+		self.bouton_ajouter= PhotoImage(file = "/home/luka/Documents/Progs_python/Psswd_Tkinter/Psswd_Design/Fichier.PNG/Boutons&Messages/bouton_login.png")
+		self.ajouter.config(image = self.bouton_ajouter, command = self.login_root)
+		self.ajouter.place(anchor = "c", width = 269.51 , height = 75.35, x = 514.775, y = 661.229 )
+
+	def login_root(self):
+		self.nom = self.nom_entry.get()
+		print(type(self.nom))
+		self.mdp = self.mdp_entry.get()
+		print(self.nom, self.mdp)
+		try:
+			psswd.nom = self.nom
+
+			psswd.conn = mysql.connector.connect(user = psswd.nom, password = self.mdp,
+									host = 'localhost')
+									
+			psswd.cursor = psswd.conn.cursor()
+
+			psswd.cursor.execute("CREATE DATABASE IF NOT EXISTS psswd_db")
+
+			psswd.conn = mysql.connector.connect(user = psswd.nom, password = self.mdp,
+								host = 'localhost',
+								database = 'psswd_db')
+
+			psswd.cursor = psswd.conn.cursor()
+
+			self.ajouter_utilisateur_window()
+
+		except:
+			print(Fore.RED + "Mauvais identifiant ou mot de passe !")
+			print(Fore.RESET)
+
+			self.nom_entry.delete(0, "end")
+			self.mdp_entry.delete(0, "end")
+
+			self.erreur_txt = PhotoImage(file = "/home/luka/Documents/Progs_python/Psswd_Tkinter/Psswd_Design/Fichier.PNG/Boutons&Messages/mauvais_identifiant.png")
+			self.canvas.create_image(511, 402, anchor = "c", image = self.erreur_txt)
+
+
+#Ajout d'un nouvel utilisateur.
+
+	def ajouter_utilisateur_window(self):
+		self.canvas.forget()
+
+		width = 1024
+		height = 768
+		self.image = PhotoImage(file = "/home/luka/Documents/Progs_python/Psswd_Tkinter/Psswd_Design/Fichier.PNG/Menus/psswd_enrnvutilisateur.png")
+		self.canvas = Canvas(self.root, width = width, height = height)
+		self.canvas.create_image(width/2, height/2, image = self.image)
+		self.canvas.pack()
+
+		self.nom_entry = Entry(self.canvas, bg = "White", justify = "center", highlightthickness = 0, bd = 0)
+		self.nom_entry.place(anchor = "c", width = 192 , height = 19, x = 511.3, y = 470.5 )
+
+		self.mdp_entry = Entry(self.canvas, bg = "White", justify = "center", highlightthickness = 0, bd = 0)
+		self.mdp_entry.place(anchor = "c", width = 192 , height = 19, x = 511.5, y = 551.5 )
+
+		self.ajouter = Button(self.canvas, highlightthickness = 0, bd = 0)
+		self.bouton_ajouter= PhotoImage(file = "/home/luka/Documents/Progs_python/Psswd_Tkinter/Psswd_Design/Fichier.PNG/Boutons&Messages/bouton_creer.png")
+		self.ajouter.config(image = self.bouton_ajouter, command = self.ajouter_utilisateur)
+		self.ajouter.place(anchor = "c", width = 269.51 , height = 75.35, x = 514.775, y = 661.229 )
+
+	def ajouter_utilisateur(self):
+		self.nom = self.nom_entry.get()
+		print(type(self.nom))
+		self.mdp = self.mdp_entry.get()
+		print(self.nom, self.mdp)
+		psswd.nom = self.nom
+
+		if self.mdp == "":
+			self.nom_entry.delete(0, "end")
+			self.mdp_entry.delete(0, "end")
+
+			self.erreur_txt = PhotoImage(file = "/home/luka/Documents/Progs_python/Psswd_Tkinter/Psswd_Design/Fichier.PNG/Boutons&Messages/mauvais_identifiant.png")
+			self.canvas.create_image(511, 402, anchor = "c", image = self.erreur_txt)
+			return
+
+		try:
+			psswd.cursor.execute("CREATE USER IF NOT EXISTS '%s'@'localhost' IDENTIFIED BY '%s';"%(psswd.nom, self.mdp))
+			psswd.conn.commit()
+			print(Fore.BLUE + "Vous êtes bien enregistré !")
+			print(Fore.RESET)
+
+			#Créé une table au nom de l'utilisateur.
+			psswd.cursor.execute("CREATE TABLE IF NOT EXISTS %s (id VARCHAR(50) PRIMARY KEY NOT NULL, mail VARCHAR(50) NOT NULL, mdp VARCHAR(1024) NOT NULL)"%(psswd.nom))
+			
+			#Donne tout les droits à l'utilisateur sur sa base de données.
+			psswd.cursor.execute("GRANT ALL PRIVILEGES ON %s TO '%s'@'localhost'"%(psswd.nom, psswd.nom))
+			self.canvas.forget()
+			self.login_window()
+
+		except:
+			print(Fore.RED + "Mauvais identifiant ou mot de passe !")
+			print(Fore.RESET)
+
+			self.nom_entry.delete(0, "end")
+			self.mdp_entry.delete(0, "end")
+
+			self.erreur_txt = PhotoImage(file = "/home/luka/Documents/Progs_python/Psswd_Tkinter/Psswd_Design/Fichier.PNG/Boutons&Messages/mauvais_identifiant.png")
+			self.canvas.create_image(511, 402, anchor = "c", image = self.erreur_txt)
+
+
+### Fin de la fenêtre de connexion ###
+
+#### Menu principal ####
+
+	def mainmenu(self):
+		
+#		self.menu = self.nv_canvas("/home/luka/Documents/Progs_python/Psswd_Tkinter/Psswd_Design/Fichier.PNG/Menus/psswd_mainmenu.png")
+		width = 1024
+		height = 768
+		self.image = PhotoImage(file = "/home/luka/Documents/Progs_python/Psswd_Tkinter/Psswd_Design/Fichier.PNG/Menus/psswd_mainmenu.png")
+		self.canvas = Canvas(self.root, width = width, height = height)
+		self.canvas.create_image(width/2, height/2, image = self.image)
+		self.canvas.pack()
+
+		#Boutons
+
+		self.ajouter = Button(self.canvas, highlightthickness = 0, bd = 0)
+		self.bouton_ajouter = PhotoImage(file = "/home/luka/Documents/Progs_python/Psswd_Tkinter/Psswd_Design/Fichier.PNG/Boutons&Messages/bouton_ajouter.png")
+		self.ajouter.config(image = self.bouton_ajouter, command = self.ajouter_window)
+		self.ajouter.place(anchor = "c", width = 269.51 , height = 75.35, x = 186.755, y = 464.229 )
+
+		self.consulter = Button(self.canvas, highlightthickness = 0, bd = 0)
+		self.bouton_consulter = PhotoImage(file = "/home/luka/Documents/Progs_python/Psswd_Tkinter/Psswd_Design/Fichier.PNG/Boutons&Messages/bouton_consulter.png")
+		self.consulter.config(image = self.bouton_consulter, command = self.consulter_window)
+		self.consulter.place(anchor = "c", width = 269.51 , height = 75.35, x = 849.245, y = 464.229 )
+
+		self.generer = Button(self.canvas, highlightthickness = 0, bd = 0)
+		self.bouton_generer = PhotoImage(file = "/home/luka/Documents/Progs_python/Psswd_Tkinter/Psswd_Design/Fichier.PNG/Boutons&Messages/bouton_generer.png")
+		self.generer.config(image = self.bouton_generer, command = self.generer_window)
+		self.generer.place(anchor = "c", width = 269.51 , height = 75.35, x = 515.937, y = 464.229 )
+
+		self.modifier = Button(self.canvas, highlightthickness = 0, bd = 0)
+		self.bouton_modifier = PhotoImage(file = "/home/luka/Documents/Progs_python/Psswd_Tkinter/Psswd_Design/Fichier.PNG/Boutons&Messages/bouton_modifier.png")
+		self.modifier.config(image = self.bouton_modifier, command = self.modifier_window)
+		self.modifier.place(anchor = "c", width = 269.51 , height = 75.35, x = 351.83, y = 602.32 )
+
+		self.supprimer = Button(self.canvas, highlightthickness = 0, bd = 0)
+		self.bouton_supprimer = PhotoImage(file = "/home/luka/Documents/Progs_python/Psswd_Tkinter/Psswd_Design/Fichier.PNG/Boutons&Messages/bouton_supprimer.png")
+		self.supprimer.config(image = self.bouton_supprimer, command = self.supprimer_window)
+		self.supprimer.place(anchor = "c", width = 269.51 , height = 75.35, x = 680.207, y = 602.32 )
+
+
+	
+### Ajouter un mot de passe ###
+
+	def ajouter_window(self):
+
+		#Suppression du contenu de la fenêtre précedente.
+		command_menu = self.canvas.forget()
+		#Création de la nouvelle Fenêtre.
+		width = 1024
+		height = 768
+		self.ajouter_fond = PhotoImage(file="/home/luka/Documents/Progs_python/Psswd_Tkinter/Psswd_Design/Fichier.PNG/Menus/psswd_ajouter.png")
+		self.canvas = Canvas(self.root, width = width, height = height)
+		self.canvas.create_image(width/2, height/2, image = self.ajouter_fond)
+		self.canvas.pack()
+
+		self.ajouter = Button(self.canvas, highlightthickness = 0, bd = 0)
+		self.bouton_ajouter= PhotoImage(file = "/home/luka/Documents/Progs_python/Psswd_Tkinter/Psswd_Design/Fichier.PNG/Boutons&Messages/bouton_ajouter.png")
+		self.ajouter.config(image = self.bouton_ajouter, command = self.ajouter_identifiants)
+		self.ajouter.place(anchor = "c", width = 269.51 , height = 75.35, x = 514.775, y = 661.229 )
+
+		self.retour = Button(self.canvas,bg = "#162c3a", activebackground = "#162c3a", highlightthickness = 0, bd = 0)
+		self.bouton_retour= PhotoImage(file = "/home/luka/Documents/Progs_python/Psswd_Tkinter/Psswd_Design/Fichier.PNG/Boutons&Messages/psswd_ajouter.png")
+		self.retour.config(image = self.bouton_retour, command = self.retour_bouton)
+		self.retour.place(anchor = "c", x = 156, y = 54.147 )
+
+
+		self.site_entry = Entry(self.canvas, justify = "center", bg = "White", highlightthickness = 0, bd = 0)
+		self.site_entry.place(anchor = "c", width = 192 , height = 19, x = 513, y = 386.5)
+		
+		self.mail_entry = Entry(self.canvas,justify = "center",  bg = "White", highlightthickness = 0, bd = 0)
+		self.mail_entry.place(anchor = "c", width = 192 , height = 19, x = 513, y = 467.5 )
+
+		self.mdp_entry = Entry(self.canvas, justify = "center", bg = "White", highlightthickness = 0, bd = 0)
+		self.mdp_entry.place(anchor = "c", width = 192 , height = 19, x = 513, y = 548.5 )
+		
+	def ajouter_identifiants(self):
+			site = self.site_entry.get()
+			mail = self.mail_entry.get()
+			mdp = self.mdp_entry.get()
+			print(mdp, mail, mdp)
+
+			if site == "" or mail == "" or mdp == "":
+				print("Rentrez des trucs dans les cases !")
+				return
+
+			mdp = mdp.encode("utf-8")
+			mdp = psswd.f.encrypt(mdp)
+			mdp = mdp.decode("utf-8")
+			psswd.cursor.execute("INSERT INTO " + psswd.nom + " VALUES (%s, %s, %s)", (site, mail, mdp))
+			psswd.conn.commit()
+			print(Fore.BLUE + "Vos informations ont été enregitrées !")
+			print(Fore.RESET)
+
+			self.erreur_txt = PhotoImage(file = "/home/luka/Documents/Progs_python/Psswd_Tkinter/Psswd_Design/Fichier.PNG/Boutons&Messages/enregistre_avec_succes.png")
+			self.canvas.create_image(511, 302, anchor = "c", image = self.erreur_txt)
+
+			self.site_entry.delete(0, "end")
+			self.mail_entry.delete(0, "end")
+			self.mdp_entry.delete(0, "end")
+
+
+#Modifier ds identifiants
+
+	def modifier_window(self):
+		#Suppression du contenu de la fenêtre précedente.
+		command_menu = self.canvas.forget()
+		#Création de la nouvelle Fenêtre.
+		width = 1024
+		height = 768
+		self.ajouter_fond = PhotoImage(file="/home/luka/Documents/Progs_python/Psswd_Tkinter/Psswd_Design/Fichier.PNG/Menus/psswd_modifier.png")
+		self.canvas = Canvas(self.root, width = width, height = height)
+		self.canvas.create_image(width/2, height/2, image = self.ajouter_fond)
+		self.canvas.pack()
+
+		self.retour = Button(self.canvas, bg = "#162c3a", activebackground = "#162c3a", highlightthickness = 0, bd = 0)
+		self.bouton_retour= PhotoImage(file = "/home/luka/Documents/Progs_python/Psswd_Tkinter/Psswd_Design/Fichier.PNG/Boutons&Messages/psswd_modif.png")
+		self.retour.config(image = self.bouton_retour, command = self.retour_bouton)
+		self.retour.place(anchor = "c", x = 156, y = 54.147 )
+
+		self.ajouter = Button(self.canvas, highlightthickness = 0, bd = 0)
+		self.bouton_ajouter= PhotoImage(file = "/home/luka/Documents/Progs_python/Psswd_Tkinter/Psswd_Design/Fichier.PNG/Boutons&Messages/bouton_modifier.png")
+		self.ajouter.config(image = self.bouton_ajouter, command = self.modifier_identifiant)
+		self.ajouter.place(anchor = "c", width = 269.51 , height = 75.35, x = 514.775, y = 661.229 )
+
+		self.site_entry = Entry(self.canvas,justify = "center",  bg = "White", highlightthickness = 0, bd = 0)
+		self.site_entry.place(anchor = "c", width = 192 , height = 19, x = 513, y = 386.5)
+		
+		self.mail_entry = Entry(self.canvas,justify = "center",  bg = "White", highlightthickness = 0, bd = 0)
+		self.mail_entry.place(anchor = "c", width = 192 , height = 19, x = 513, y = 467.5 )
+
+		self.mdp_entry = Entry(self.canvas,justify = "center",  bg = "White", highlightthickness = 0, bd = 0)
+		self.mdp_entry.place(anchor = "c", width = 192 , height = 19, x = 513, y = 548.5 )
+
+		
+	def modifier_identifiant(self):
+		site = self.site_entry.get()
+		mail = self.mail_entry.get()
+		mdp = self.mdp_entry.get()
+		print(site, mail, mdp)
+
+		if site == "" or mail == "" or mdp == "":
+				print("Rentrez des trucs dans les cases !")
+				return
+
+		mdp = mdp.encode("utf-8")
+		mdp = psswd.f.encrypt(mdp)
+		mdp = mdp.decode("utf-8")
+
+		try:
+			psswd.cursor.execute("UPDATE " + psswd.nom + " SET mail = %s, mdp = %s WHERE id LIKE %s;",(mail, mdp, site))
+			psswd.conn.commit()
+			self.erreur_txt = PhotoImage(file = "/home/luka/Documents/Progs_python/Psswd_Tkinter/Psswd_Design/Fichier.PNG/Boutons&Messages/enregistre_avec_succes.png")
+			self.canvas.create_image(511, 302, anchor = "c", image = self.erreur_txt)
+
+
+		except:
+			print(Fore.RED + "\nVous n'avez pas enregistré d'informations pour ce site !")
+			print(Fore.RESET)
+			self.erreur_txt = PhotoImage(file = "/home/luka/Documents/Progs_python/Psswd_Tkinter/Psswd_Design/Fichier.PNG/Boutons&Messages/erreur_pas_d'identifiant.png")
+			self.canvas.create_image(511, 302, anchor = "c", image = self.erreur_txt)
+
+			return
+			
+
+#Supprimer des identifiants
+
+	def supprimer_window(self):
+		#Suppression du contenu de la fenêtre précedente.
+		command_menu = self.canvas.forget()
+		#Création de la nouvelle Fenêtre.
+		width = 1024
+		height = 768
+		self.ajouter_fond = PhotoImage(file="/home/luka/Documents/Progs_python/Psswd_Tkinter/Psswd_Design/Fichier.PNG/Menus/psswd_supprimer.png")
+		self.canvas = Canvas(self.root, width = width, height = height)
+		self.canvas.create_image(width/2, height/2, image = self.ajouter_fond)
+		self.canvas.pack()
+
+		self.retour = Button(self.canvas,bg = "#162c3a",activebackground = "#162c3a", highlightthickness = 0, bd = 0)
+		self.bouton_retour= PhotoImage(file = "/home/luka/Documents/Progs_python/Psswd_Tkinter/Psswd_Design/Fichier.PNG/Boutons&Messages/psswd_suppr.png")
+		self.retour.config(image = self.bouton_retour, command = self.retour_bouton)
+		self.retour.place(anchor = "c", x = 156, y = 54.147 )
+
+
+		self.ajouter = Button(self.canvas, highlightthickness = 0, bd = 0)
+		self.bouton_ajouter= PhotoImage(file = "/home/luka/Documents/Progs_python/Psswd_Tkinter/Psswd_Design/Fichier.PNG/Boutons&Messages/bouton_supprimer.png")
+		self.ajouter.config(image = self.bouton_ajouter, command = self.supprimer_identifiant)
+		self.ajouter.place(anchor = "c", width = 269.51 , height = 75.35, x = 514.775, y = 661.229 )
+
+		self.site_entry = Entry(self.canvas, justify = "center", bg = "White", highlightthickness = 0, bd = 0)
+		self.site_entry.place(anchor = "c", width = 192 , height = 19, x = 513, y = 386.5)
+		
+	def supprimer_identifiant(self):
+		self.site = self.site_entry.get()
+
+		try:
+			self.cursor.execute("DELETE FROM " + psswd.nom + " WHERE id LIKE %s;",(self.site,))
+			self.conn.commit()
+			self.erreur_txt = PhotoImage(file = "/home/luka/Documents/Progs_python/Psswd_Tkinter/Psswd_Design/Fichier.PNG/Boutons&Messages/supprime_avec_succes.png")
+			self.canvas.create_image(511, 302, anchor = "c", image = self.erreur_txt)
+
+		except:
+			print(Fore.RED + "\nVous n'avez pas enregistré d'informations pour ce site !")
+			print(Fore.RESET)
+			self.erreur_txt = PhotoImage(file = "/home/luka/Documents/Progs_python/Psswd_Tkinter/Psswd_Design/Fichier.PNG/Boutons&Messages/erreur_pas_d'identifiant.png")
+			self.canvas.create_image(511, 302, anchor = "c", image = self.erreur_txt)
+
+			return
+	
+
+	### Génerer un mot de passe ###
+	def generer_window(self):
+
+		command_menu = self.canvas.forget()
+
+		width = 1024
+		height = 768
+		self.ajouter_fond = PhotoImage(file="/home/luka/Documents/Progs_python/Psswd_Tkinter/Psswd_Design/Fichier.PNG/Menus/psswd_generer.png")
+		self.canvas = Canvas(self.root, width = width, height = height)
+		self.canvas.create_image(width/2, height/2, image = self.ajouter_fond)
+		self.canvas.pack()
+
+		self.ajouter = Button(self.canvas, highlightthickness = 0, bd = 0)
+		self.bouton_ajouter= PhotoImage(file = "/home/luka/Documents/Progs_python/Psswd_Tkinter/Psswd_Design/Fichier.PNG/Boutons&Messages/bouton_generer.png")
+		self.ajouter.config(image = self.bouton_ajouter, command = self.generer_identifiant)
+		self.ajouter.place(anchor = "c", width = 269.51 , height = 75.35, x = 515, y = 576 )
+
+		self.retour = Button(self.canvas,bg = "#162c3a", activebackground = "#162c3a", highlightthickness = 0, bd = 0)
+		self.bouton_retour= PhotoImage(file = "/home/luka/Documents/Progs_python/Psswd_Tkinter/Psswd_Design/Fichier.PNG/Boutons&Messages/psswd_ajouter.png")
+		self.retour.config(image = self.bouton_retour, command = self.retour_bouton)
+		self.retour.place(anchor = "c", x = 156, y = 54.147 )
+
+
+		self.size_entry = Entry(self.canvas, justify = "center",bg = "White", highlightthickness = 0, bd = 0)
+		self.size_entry.place(anchor = "c", width = 192 , height = 19, x = 513, y = 386.5)
+
+		self.mdp_entry = Entry(self.canvas, justify = "center",bg = "White", highlightthickness = 0, bd = 0)
+		self.mdp_entry.place(anchor = "c", width = 192 , height = 19, x = 513, y = 690.5)
+
+		self.check1 = IntVar()
+		self.chiffre = Checkbutton(self.canvas, activebackground = "White", highlightthickness = 0, bd = 0,  bg = "White", variable = self.check1)
+		self.chiffre.place(anchor = "c", width = 19, height = 19, x = 375, y = 467)
+
+		self.check2 = IntVar()
+		self.lettre = Checkbutton(self.canvas, activebackground = "White", highlightthickness = 0, bd = 0,  bg = "White", variable = self.check2)
+		self.lettre.place(anchor = "c", width = 19, height = 19, x = 513, y = 467)
+
+		self.check3 = IntVar()
+		self.speciaux = Checkbutton(self.canvas, activebackground = "White", highlightthickness = 0, bd = 0,  bg = "White", variable = self.check3)
+		self.speciaux.place(anchor = "c", width = 19, height = 19, x = 645, y = 467)
+
+
+	def generer_identifiant(self):
+		
+		self.mdp_entry.delete(0, "end")
+		
+
+		nb_char = int(self.size_entry.get())
+		chiffre = self.check1.get()
+		lettre = self.check2.get()
+		speciaux = self.check3.get()
+
+		print(chiffre, lettre, speciaux)
+		digits = string.digits
+		lettres = string.ascii_letters
+		char_speciaux = string.punctuation
+		
+		mdp_gen = ""
+		if chiffre == 1 and lettre == 0 and speciaux == 0:
+			charset = digits
+			mdp_gen = "".join(random.sample(charset, nb_char))
+			
+			
+
+		elif lettre == 1 and chiffre == 0 and speciaux == 0:
+			charset = lettres
+			mdp_gen = "".join(random.sample(charset, nb_char))
+			
+			
+
+		elif speciaux == 1 and chiffre == 0 and lettre == 0:
+			charset = char_speciaux
+			mdp_gen = "".join(random.sample(charset, nb_char))
+			
+
+		elif lettre == 1 and chiffre == 1 and speciaux == 0:
+			charset = digits + lettres
+			mdp_gen = "".join(random.sample(charset, nb_char))
+			
+			
+
+		elif chiffre == 1 and speciaux == 1 and lettre == 0:
+			charset = digits + char_speciaux
+			mdp_gen ="".join(random.sample(charset, nb_char))
+			print(Fore.RESET)
+			
+
+		elif chiffre == 1 and lettre == 1 and speciaux == 1:
+			charset = digits + char_speciaux + lettres
+			mdp_gen = "".join(random.sample(charset, nb_char))
+			
+
+		elif lettre == 1 and speciaux == 1 and chiffre == 0:
+			charset = lettres + char_speciaux
+			mdp_gen = "".join(random.sample(charset, nb_char))
+		
+			
+		else:
+			print("Erreur")
+		
+		print(mdp_gen)
+		self.mdp_entry.insert(0, mdp_gen)
+
+	def consulter_window(self):
+
+
+		#Suppression du contenu de la fenêtre précedente.
+		command_menu = self.canvas.forget()
+		#Création de la nouvelle Fenêtre.
+		width = 1024
+		height = 768
+		self.ajouter_fond = PhotoImage(file="/home/luka/Documents/Progs_python/Psswd_Tkinter/Psswd_Design/Fichier.PNG/Menus/psswd_consulter.png")
+		self.canvas = Canvas(self.root, width = width, height = height)
+		self.canvas.create_image(width/2, height/2, image = self.ajouter_fond)
+		self.canvas.pack()
+
+		self.retour = Button(self.canvas, bg = "#162c3a", activebackground = "#162c3a", highlightthickness = 0, bd = 0)
+		self.bouton_retour= PhotoImage(file = "/home/luka/Documents/Progs_python/Psswd_Tkinter/Psswd_Design/Fichier.PNG/Boutons&Messages/psswd_consulter.png")
+		self.retour.config(image = self.bouton_retour, command = self.retour_bouton)
+		self.retour.place(anchor = "c", x = 156, y = 54.147 )
+
+		self.ajouter = Button(self.canvas, highlightthickness = 0, bd = 0)
+		self.bouton_ajouter= PhotoImage(file = "/home/luka/Documents/Progs_python/Psswd_Tkinter/Psswd_Design/Fichier.PNG/Boutons&Messages/bouton_consulter.png")
+		self.ajouter.config(image = self.bouton_ajouter, command = self.consulter_identifiants)
+		self.ajouter.place(anchor = "c", width = 269.51 , height = 75.35, x = 514.775, y = 476 )
+
+		self.site_entry = Entry(self.canvas, justify = "center",bg = "White", highlightthickness = 0, bd = 0)
+		self.site_entry.place(anchor = "c", width = 192 , height = 19, x = 513, y = 386.5)
+		
+		self.mail_entry = Entry(self.canvas,justify = "center", bg = "White", highlightthickness = 0, bd = 0)
+		self.mail_entry.place(anchor = "c", width = 192 , height = 19, x = 513, y = 607.5 )
+
+		self.mdp_entry = Entry(self.canvas,justify = "center",bg = "White", highlightthickness = 0, bd = 0)
+		self.mdp_entry.place(anchor = "c", width = 192 , height = 19, x = 513, y = 690.5 )
+		
+
+
+	def consulter_identifiants(self):
+
+		site = self.site_entry.get()
+		print(site)
+		self.mail_entry.delete(0, "end")
+		self.mdp_entry.delete(0, "end")
+		
+		try:
+			psswd.cursor.execute("SELECT id, mail, mdp FROM " + psswd.nom + " WHERE id LIKE %s;",(site,))
+			information = psswd.cursor.fetchone()
+			mdp = information[2]
+			print("Test1")
+		except:
+			print(Fore.RED + "\nVous n'avez pas enregistré d'informations pour ce site !")
+			print(Fore.RESET)
+			self.erreur_txt = PhotoImage(file = "/home/luka/Documents/Progs_python/Psswd_Tkinter/Psswd_Design/Fichier.PNG/Boutons&Messages/erreur_pas_d'identifiant.png")
+			self.canvas.create_image(511, 302, anchor = "c", image = self.erreur_txt)
+
+			self.site_entry.delete(0, "end")
+			self.mail_entry.delete(0, "end")
+			self.mdp_entry.delete(0, "end")
+			return
+
+		try:
+			mdp = mdp.encode("utf-8")
+			mdp = psswd.f.decrypt(mdp)
+			mdp = mdp.decode("utf-8")
+			fichier = (Fore.BLUE + "\nSite : " + information[0] + "\nIdentifiant : " + information[1] + "\nMot de passe : " + mdp)
+			print(fichier)
+			print(Fore.RESET)
+
+			self.mail_entry.insert(0, information[1])
+
+			self.mdp_entry.insert(0, mdp)
+
+
+
+		except:
+			print(Fore.RED + "\nVous essayez de lire un mot de passe crypté avec une autre clé !")
+			print(Fore.RESET)
+			
+			self.site_entry.delete(0, "end")
+			self.mail_entry.delete(0, "end")
+			self.mdp_entry.delete(0, "end")
+
+
+	def retour_bouton(self):
+		self.canvas.forget()
+		self.mainmenu()
+		print("Test1")
+	
+
+
+### On lance le tout ###
+psswd()
