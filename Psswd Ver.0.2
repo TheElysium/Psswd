@@ -1,0 +1,637 @@
+#Modules
+import os
+import sys
+
+if getattr(sys, 'frozen', False):
+    # frozen
+    root = os.path.dirname(sys.executable)
+else:
+    # unfrozen
+    root = os.path.dirname(os.path.realpath(__file__))
+
+#Récupère le chemin vers le dossier où se trouve le .py
+path = os.path.join(root)
+
+try:
+	#Modules
+	from tkinter import *
+	from getpass import getpass
+	from colorama import init
+	from colorama import Fore
+	import shutil
+	import string
+	import random
+	from cryptography.fernet import Fernet 
+	import time
+	import mysql.connector
+	import _cffi_backend
+	import logging
+	from functools import partial
+
+except Exception as erreur:
+	logging.exception("")
+	erreur = str(erreur)
+	txt = open(root + "/debug", "w")
+	txt.write(erreur)
+	txt.close()
+
+
+
+class psswd:
+
+	cursor = ""
+	conn = ""
+	nom = ""
+	mdp_all = ""
+	incr = 4
+	bouton_liste = []
+	site_liste = []
+	nom_site = ""
+
+#Essaye de récuperer la clé de cryptage, la créé si elle n'existe pas.
+	try:
+		path = os.path.join("cle")
+		path = os.path.join(root, path)
+		cle = open(path, "r")
+		key = cle.read()
+		key = key.encode("utf-8")
+
+
+	except:
+		print(Fore.RED + "\nC'est la première fois que vous lancez le gestionnaire de mots de passe."\
+			"Une clé de cryptage a été génerée dans le fichier 'cle'. Ne touchez pas à ce fichier ! \n"\
+			"Vous aurez besoin de votre administrateur système par la suite.")
+		print(Fore.RESET)
+		path = os.path.join("cle")
+		path = os.path.join(root, path)
+		cle = open(path, "w")
+		key = Fernet.generate_key()
+		key = key.decode("utf-8")
+		cle.write(key)
+		cle.close()
+		print(key)
+		key = key.encode("utf-8")
+
+	f = Fernet(key)
+
+### Initialisation de la fenêtre principale ###
+	
+	def __init__(self):
+		self.root = Tk()
+		self.root["bg"] = "#162c3a"
+		self.root.title("Psswd Ver. 0.1")
+		self.root.geometry("1024x768")
+		self.root.resizable(0,0)
+		self.login_window()
+		self.root.mainloop()
+
+
+### Fenêtre de connexion ###
+
+	def login_window(self):
+
+		width = 1024
+		height = 768
+
+		self.image = PhotoImage(file = root + "/Psswd_Design_2/Fichier.PNG/psswd_login.png")
+		self.canvas = Canvas(self.root, width = width, height = height, highlightthickness = 0, bd = 0)
+		self.canvas.create_image(width/2, height/2, image = self.image)
+		self.canvas.pack()
+
+		self.nom_entry = Entry(self.canvas, bg = "White", justify = "center", highlightthickness = 0, bd = 0)
+		self.nom_entry.place(anchor = "c", width = 192 , height = 19, x = 511.3, y = 470.5 )
+
+		self.mdp_entry = Entry(self.canvas, bg = "White", justify = "center", highlightthickness = 0, bd = 0)
+		self.mdp_entry.place(anchor = "c", width = 192 , height = 19, x = 511.5, y = 551.5 )
+
+		self.ajouter = Button(self.canvas,bg = "#162c3a", activebackground = "#162c3a", highlightthickness = 0, bd = 0)
+		self.bouton_ajouter= PhotoImage(file = root + "/Psswd_Design_2/Fichier.PNG/bouton_login.png")
+		self.ajouter.config(image = self.bouton_ajouter, command = self.login)
+		self.ajouter.place(anchor = "c", x = 513.9, y = 646 )
+
+		self.oubli = Button(self.canvas, bg = "#162c3a", activebackground = "#162c3a", highlightthickness = 0, bd = 0)
+		self.bouton_oubli= PhotoImage(file = root + "/Psswd_Design_2/Fichier.PNG/mdp_oublie.png")
+		self.oubli.config(image = self.bouton_oubli)
+		self.oubli.place(anchor = "c",  x = 511, y = 576.239 )
+
+		self.nouveau = Button(self.canvas, bg = "#162c3a", activebackground = "#162c3a", highlightthickness = 0, bd = 0)
+		self.bouton_nouveau= PhotoImage(file = root + "/Psswd_Design_2/Fichier.PNG/creer_compte.png")
+		self.nouveau.config(image = self.bouton_nouveau, command = self.login_root_window)
+		self.nouveau.place(anchor = "c",  width = 400, height = 40, x = 520, y = 730.739 )
+		
+
+	def login(self):
+		self.nom = self.nom_entry.get()
+		print(type(self.nom))
+		self.mdp = self.mdp_entry.get()
+		print(self.nom, self.mdp)
+		psswd.nom = self.nom
+
+		try:
+			psswd.conn = mysql.connector.connect(user = self.nom, password = self.mdp,
+								host = 'localhost',
+								database = 'psswd_db')
+			psswd.cursor = psswd.conn.cursor()
+			command_menu = self.nom_entry.forget(), self.mdp_entry.forget(), self.ajouter.place_forget(), self.canvas.forget()
+			self.mainmenu()
+		except:
+			self.erreur_txt = PhotoImage(file = root + "/Psswd_Design_2/Fichier.PNG/mauvais_identifiant.png")
+			self.canvas.create_image(511, 402, anchor = "c", image = self.erreur_txt)
+			self.nom.delete(0, "end")
+			self.mdp.delete(0, "end")
+
+	
+#COnnexion en tant qu'administrateur pour ajouter un nouvel utilisateur.
+
+	def login_root_window(self):
+		self.canvas.forget()
+
+		width = 1024
+		height = 768
+		self.image = PhotoImage(file = root + "/Psswd_Design_2/Fichier.PNG/psswd_nvutilisateur.png")
+		self.canvas = Canvas(self.root, width = width, height = height)
+		self.canvas.create_image(width/2, height/2, image = self.image)
+		self.canvas.pack()
+
+		self.nom_entry = Entry(self.canvas, bg = "White", justify = "center", highlightthickness = 0, bd = 0)
+		self.nom_entry.place(anchor = "c", width = 192 , height = 19, x = 511.3, y = 470.5 )
+
+		self.mdp_entry = Entry(self.canvas, bg = "White", justify = "center", highlightthickness = 0, bd = 0)
+		self.mdp_entry.place(anchor = "c", width = 192 , height = 19, x = 511.5, y = 551.5 )
+
+		self.ajouter = Button(self.canvas, highlightthickness = 0, bd = 0)
+		self.bouton_ajouter= PhotoImage(file = root + "/Psswd_Design_2/Fichier.PNG/bouton_login.png")
+		self.ajouter.config(image = self.bouton_ajouter, command = self.login_root)
+		self.ajouter.place(anchor = "c", width = 269.51 , height = 75.35, x = 514.775, y = 661.229 )
+
+	def login_root(self):
+		self.nom = self.nom_entry.get()
+		print(type(self.nom))
+		self.mdp = self.mdp_entry.get()
+		print(self.nom, self.mdp)
+
+		try:
+			psswd.nom = self.nom
+
+			psswd.conn = mysql.connector.connect(user = psswd.nom, password = self.mdp,
+									host = 'localhost')
+									
+			psswd.cursor = psswd.conn.cursor()
+
+			psswd.cursor.execute("CREATE DATABASE IF NOT EXISTS psswd_db")
+
+			psswd.conn = mysql.connector.connect(user = psswd.nom, password = self.mdp,
+								host = 'localhost',
+								database = 'psswd_db')
+
+			psswd.cursor = psswd.conn.cursor()
+
+			self.ajouter_utilisateur_window()
+
+		except:
+			print(Fore.RED + "Mauvais identifiant ou mot de passe !")
+			print(Fore.RESET)
+
+			self.nom_entry.delete(0, "end")
+			self.mdp_entry.delete(0, "end")
+
+			self.erreur_txt = PhotoImage(file = root + "/Psswd_Design_2/Fichier.PNG/mauvais_identifiant.png")
+			self.canvas.create_image(511, 402, anchor = "c", image = self.erreur_txt)
+
+
+#Ajout d'un nouvel utilisateur.
+
+	def ajouter_utilisateur_window(self):
+		self.canvas.forget()
+
+		width = 1024
+		height = 768
+		self.image = PhotoImage(file = root + "/Psswd_Design_2/Fichier.PNG/psswd_enrnvutilisateur.png")
+		self.canvas = Canvas(self.root, width = width, height = height)
+		self.canvas.create_image(width/2, height/2, image = self.image)
+		self.canvas.pack()
+
+		self.nom_entry = Entry(self.canvas, bg = "White", justify = "center", highlightthickness = 0, bd = 0)
+		self.nom_entry.place(anchor = "c", width = 192 , height = 19, x = 511.3, y = 470.5 )
+
+		self.mdp_entry = Entry(self.canvas, bg = "White", justify = "center", highlightthickness = 0, bd = 0)
+		self.mdp_entry.place(anchor = "c", width = 192 , height = 19, x = 511.5, y = 551.5 )
+
+		self.ajouter = Button(self.canvas, highlightthickness = 0, bd = 0)
+		self.bouton_ajouter= PhotoImage(file = root + "/Psswd_Design_2/Fichier.PNG/bouton_creer.png")
+		self.ajouter.config(image = self.bouton_ajouter, command = self.ajouter_utilisateur)
+		self.ajouter.place(anchor = "c", width = 269.51 , height = 75.35, x = 514.775, y = 661.229 )
+
+	def ajouter_utilisateur(self):
+		self.nom = self.nom_entry.get()
+		print(type(self.nom))
+		self.mdp = self.mdp_entry.get()
+		print(self.nom, self.mdp)
+		psswd.nom = self.nom
+
+		if self.mdp == "" or self.nom:
+			self.nom_entry.delete(0, "end")
+			self.mdp_entry.delete(0, "end")
+
+			self.erreur_txt = PhotoImage(file = root + "/Psswd_Design_2/Fichier.PNG/mauvais_identifiant.png")
+			self.canvas.create_image(770, 520, anchor = "c", image = self.erreur_txt)
+			return
+
+		try:
+			psswd.cursor.execute("CREATE USER IF NOT EXISTS '%s'@'localhost' IDENTIFIED BY '%s';"%(psswd.nom, self.mdp))
+			psswd.conn.commit()
+			print(Fore.BLUE + "Vous êtes bien enregistré !")
+			print(Fore.RESET)
+
+			#Créé une table au nom de l'utilisateur.
+			psswd.cursor.execute("CREATE TABLE IF NOT EXISTS %s (id VARCHAR(50) PRIMARY KEY NOT NULL, mail VARCHAR(50) NOT NULL, mdp VARCHAR(1024) NOT NULL)"%(psswd.nom))
+			
+			#Donne tout les droits à l'utilisateur sur sa base de données. 
+			psswd.cursor.execute("GRANT ALL PRIVILEGES ON %s TO '%s'@'localhost'"%(psswd.nom, psswd.nom))
+			self.canvas.forget()
+			self.login_window()
+
+		except:
+			print(Fore.RED + "Mauvais identifiant ou mot de passe !")
+			print(Fore.RESET)
+
+			self.nom_entry.delete(0, "end")
+			self.mdp_entry.delete(0, "end")
+
+			self.erreur_txt = PhotoImage(file = root + "/Psswd_Design_2/Fichier.PNG/deja_existant.png")
+			self.canvas.create_image(511, 402, anchor = "c", image = self.erreur_txt)
+
+
+### Fin de la fenêtre de connexion ###
+
+#### Menu principal ####
+
+	def mainmenu(self):
+		psswd.incr = 4
+		width = 1024
+		height = 758
+		self.image = PhotoImage(file = root + "/Psswd_Design_2/Fichier.PNG/psswd_mainmenu.png")
+		self.canvas = Canvas(self.root, width = width, height = height, highlightthickness = 0, bd = 0)
+		self.canvas.create_image(width/2, height/2, image = self.image)
+		self.canvas.pack()
+		
+		psswd.cursor.execute("SELECT id FROM " + psswd.nom )
+		psswd.mdp_all = psswd.cursor.fetchall()
+
+		self.coordy = 273.5
+
+	
+		self.bouton_afficher = PhotoImage(file = root + "/Psswd_Design_2/Fichier.PNG/bouton_afficher.png")
+
+
+		
+
+		for i in range (0, 	psswd.incr ):
+		
+			self.identifiants = psswd.mdp_all[i]
+			site = self.identifiants[0]
+			psswd.site_liste.append(site)
+			print(site)
+			psswd.bouton_liste.append(Button(self.canvas,name = site, text = site, font = ("Myriad Pro", 15), fg = "White", image = self.bouton_afficher, compound = "center",\
+			 bg = "#162c3a", activebackground = "#162c3a",highlightthickness = 0, bd = 0 , command =  lambda site_nom = site: self.affichage(site_nom)))
+        
+			
+
+		for i in range (0, psswd.incr ):
+			
+			psswd.bouton_liste[i].place(anchor = "c", width = 350.51 , height = 75.35, x = 254.5, y = self.coordy )
+
+			self.coordy = self.coordy + 111.7
+
+
+
+		self.image2 = PhotoImage(file = root + "/Psswd_Design_2/Fichier.PNG/psswd_output.png")
+		self.canvas.create_image(769.5, 445.5, anchor = "c", image = self.image2)
+		
+		self.entry1 = Entry(self.canvas, justify = "center", bg = "White", highlightthickness = 0, bd = 0)
+		self.entry1.place(anchor = "c", width = 193 , height = 19, x = 770.5, y = 311.5)
+
+		self.entry2 = Entry(self.canvas, justify = "center", bg = 	"White", highlightthickness = 0, bd = 0)
+		self.entry2.place(anchor = "c", width = 193 , height = 19, x = 770.5, y = 393.5)
+
+		self.entry3 = Entry(self.canvas, justify = "center", bg = "White", highlightthickness = 0, bd = 0)
+		self.entry3.place(anchor = "c", width = 193 , height = 19, x = 770.5, y = 478.5)
+
+	
+		self.ajouter = Button(self.canvas, bg = "#1e394b", activebackground = "#1e394b", highlightthickness = 0, bd = 0, command = self.ajouter_identifiants)
+		self.bouton_ajouter = PhotoImage(file = root + "/Psswd_Design_2/Fichier.PNG/bouton_ajouter.png")
+		self.ajouter.config(image = self.bouton_ajouter)
+		self.ajouter.place(anchor = "c", x = 770.671, y = 564.995)
+
+		self.modifier = Button(self.canvas, bg = "#1e394b", activebackground = "#1e394b", highlightthickness = 0, bd = 0, command = self.modifier_identifiant)
+		self.bouton_modifier = PhotoImage(file = root + "/Psswd_Design_2/Fichier.PNG/bouton_modifier.png")
+		self.modifier.config(image = self.bouton_modifier)
+		self.modifier.place(anchor = "c", x = 674.191, y = 564.667)
+
+		self.supprimer = Button(self.canvas,bg = "#1e394b", activebackground = "#1e394b",  highlightthickness = 0, bd = 0, command = self.supprimer_identifiant)
+		self.bouton_supprimer = PhotoImage(file = root + "/Psswd_Design_2/Fichier.PNG/bouton_supprimer.png")
+		self.supprimer.config(image = self.bouton_supprimer)
+		self.supprimer.place(anchor = "c", x = 867, y = 566 )
+
+		self.generer = Button(self.canvas,bg = "#1e394b", activebackground = "#1e394b",  highlightthickness = 0, bd = 0, command = self.generer_identifiant)
+		self.bouton_generer = PhotoImage(file = root + "/Psswd_Design_2/Fichier.PNG/bouton_generer.png")
+		self.generer.config(image = self.bouton_generer)
+		self.generer.place(anchor = "c", x = 895.682, y = 478.5)
+
+		self.scrollup = Button(self.canvas, bg = "#162c3a", activebackground = "#162c3a", highlightthickness = 0, bd = 0)
+		self.bouton_scrollup = PhotoImage(file = root + "/Psswd_Design_2/Fichier.PNG/bouton_scrollup.png")
+		self.scrollup.config(image = self.bouton_scrollup, command = self.aff_scrollup)
+		self.scrollup.place(anchor = "c", x = 254.663, y = 190.948 )
+
+		self.scrolldown = Button(self.canvas, bg = "#162c3a", activebackground = "#162c3a", highlightthickness = 0, bd = 0)
+		self.bouton_scrolldown = PhotoImage(file = root + "/Psswd_Design_2/Fichier.PNG/bouton_scrolldown.png")
+		self.scrolldown.config(image = self.bouton_scrolldown, command = self.aff_scrolldown)	
+		self.scrolldown.place(anchor = "c", x = 254.663, y = 690.497 )
+
+
+	def aff_scrolldown(self):
+		
+
+		self.coordy = 273.5
+
+
+		self.coordy = self.coordy + 117.5
+		modulo = len(self.mdp_all) % 4 
+		print(modulo)
+		print(len(self.mdp_all))
+		print(psswd.incr)
+	
+
+		if modulo != 0 and (len(self.mdp_all) == (psswd.incr + modulo)):
+
+			for bouton in self.bouton_liste:
+
+				bouton.destroy()
+
+			psswd.bouton_liste = []
+			print(1)
+			psswd.incr = psswd.incr + 4
+
+			self.coordy = 273.5
+
+			for i in range (psswd.incr - 4, psswd.incr - 4 + modulo):
+				print(i)
+
+				self.identifiants = psswd.mdp_all[i]
+
+				site = self.identifiants[0]
+				psswd.site_liste.append(site)
+				print(site)
+				psswd.bouton_liste.append(Button(self.canvas,name = site, text = site, font = ("Myriad Pro", 15), fg = "White", image = self.bouton_afficher, compound = "center",\
+				 bg = "#162c3a", activebackground = "#162c3a",highlightthickness = 0, bd = 0 , command =  lambda site_nom = site: self.affichage(site_nom)))
+				
+			print(psswd.bouton_liste)
+			for i in range (0, modulo):
+				
+				psswd.bouton_liste[i].place(anchor = "c", width = 350.51 , height = 75.35, x = 254.5, y = self.coordy )
+
+				self.coordy = self.coordy + 111.7
+
+		elif psswd.incr > len(self.mdp_all):
+			return
+
+		elif len(self.mdp_all) >= psswd.incr + 4:
+
+			for bouton in self.bouton_liste:
+
+				bouton.destroy()
+
+			psswd.bouton_liste = []
+			psswd.incr = psswd.incr + 4
+
+			self.coordy = 273.5
+			for i in range (psswd.incr - 4, psswd.incr ):
+
+				self.identifiants = psswd.mdp_all[i]
+
+				site = self.identifiants[0]
+				psswd.site_liste.append(site)
+				print(site)
+				psswd.bouton_liste.append(Button(self.canvas,name = site, text = site, font = ("Myriad Pro", 15),fg = "White", image = self.bouton_afficher, compound = "center",\
+				 bg = "#162c3a", activebackground = "#162c3a",highlightthickness = 0, bd = 0 , command =  lambda site_nom = site: self.affichage(site_nom)))
+				
+		
+			for i in range (0, 4):
+				
+				psswd.bouton_liste[i].place(anchor = "c", width = 350.51 , height = 75.35, x = 254.5, y = self.coordy )
+
+				self.coordy = self.coordy + 111.7
+
+		
+
+		else:
+			print("?")
+
+	def aff_scrollup(self):
+	
+		if psswd.incr - 4 <= 0:
+			return
+	
+		self.coordy = 273.5
+		print(psswd.incr)
+
+		for bouton in self.bouton_liste:
+
+			bouton.destroy()
+		
+		psswd.bouton_liste = []
+		self.coordy = self.coordy + 117.5
+		modulo = len(self.mdp_all) % 4 
+		print(len(self.mdp_all))
+		print(psswd.incr)
+		print(modulo)
+	
+		if len(self.mdp_all) >= psswd.incr - 4:
+			print(0)
+			psswd.incr = psswd.incr - 4
+
+			self.coordy = 273.5
+			for i in range (psswd.incr - 4, psswd.incr ):
+				print(i)
+
+				self.identifiants = psswd.mdp_all[i]
+
+				site = self.identifiants[0]
+				psswd.site_liste.append(site)
+				print(site)
+				psswd.bouton_liste.append(Button(self.canvas, name = site, text = site, font = ("Myriad Pro", 15), fg = "White", image = self.bouton_afficher, compound = "center",\
+				 bg = "#162c3a", activebackground = "#162c3a",highlightthickness = 0, bd = 0 , command =  lambda site_nom = site: self.affichage(site_nom)))
+				
+			print(psswd.bouton_liste)
+			for i in range (0, 4):
+				
+				psswd.bouton_liste[i].place(anchor = "c", width = 350.51 , height = 75.35, x = 254.5, y = self.coordy )
+
+				self.coordy = self.coordy + 111.7
+		
+		else: 
+			print("?")
+
+	def affichage(self, site_nom):
+		print(site_nom)
+		self.entry1.delete(0, "end")
+		self.entry2.delete(0, "end")
+		self.entry3.delete(0, "end")
+		
+		try:
+			psswd.cursor.execute("SELECT id, mail, mdp FROM " + psswd.nom + " WHERE id LIKE %s ORDER BY id;",(site_nom,))
+			information = psswd.cursor.fetchone()
+			mdp = information[2]
+
+		except:
+			print(Fore.RED + "\nVous n'avez pas enregistré d'informations pour ce site !")
+			print(Fore.RESET)
+		
+
+
+			self.site_entry.delete(0, "end")
+			self.mail_entry.delete(0, "end")
+			self.mdp_entry.delete(0, "end")
+			return
+
+		try:
+			mdp = mdp.encode("utf-8")
+			mdp = psswd.f.decrypt(mdp)
+			mdp = mdp.decode("utf-8")
+			fichier = (Fore.BLUE + "\nSite : " + information[0] + "\nIdentifiant : " + information[1] + "\nMot de passe : " + mdp)
+			print(fichier)
+			print(Fore.RESET)
+
+			self.entry1.insert(0, site_nom)
+			self.entry2.insert(0, information[1])
+
+			self.entry3.insert(0, mdp)
+
+		except:
+			print(Fore.RED + "\nVous essayez de lire un mot de passe crypté avec une autre clé !")
+			print(Fore.RESET)
+			
+			self.entry1.delete(0, "end")
+			self.entry2.delete(0, "end")
+			self.entry3.delete(0, "end")
+
+	def ajouter_identifiants(self):
+				site = self.entry1.get()
+				mail = self.entry2.get()
+				mdp = self.entry3.get()
+				print(mdp, mail, mdp)
+
+				if site == "" or mail == "" or mdp == "":
+					print("Rentrez des trucs dans les cases !")
+					self.erreur_txt = PhotoImage(file = root + "/Psswd_Design_2/Fichier.PNG/remplir_tout.png")
+					self.canvas.create_image(770, 639.904, anchor = "c", image = self.erreur_txt)
+
+					return
+					
+				mdp = mdp.encode("utf-8")
+				mdp = psswd.f.encrypt(mdp)
+				mdp = mdp.decode("utf-8")
+				try:
+					psswd.cursor.execute("INSERT INTO " + psswd.nom + " VALUES (%s, %s, %s)", (site, mail, mdp))
+					psswd.conn.commit()
+					print(Fore.BLUE + "Vos informations ont été enregitrées !")
+					print(Fore.RESET)
+
+					self.erreur_txt = PhotoImage(file = root + "/Psswd_Design_2/Fichier.PNG/enregistre.png")
+					self.canvas.create_image(770, 639.904, anchor = "c", image = self.erreur_txt)
+				except:
+					self.erreur_txt = PhotoImage(file = root + "/Psswd_Design_2/Fichier.PNG/deja_existant.png")
+					self.canvas.create_image(770, 639.904, anchor = "c", image = self.erreur_txt)
+				
+				self.entry1.delete(0, "end")
+				self.entry2.delete(0, "end")
+				self.entry3.delete(0, "end")
+
+#				self.canvas.forget()
+#				self.mainmenu()
+
+	def supprimer_identifiant(self):
+
+		self.site = self.entry1.get()
+
+		try:
+			self.cursor.execute("DELETE FROM " + psswd.nom + " WHERE id LIKE %s;",(self.site,))
+			self.conn.commit()
+			self.erreur_txt = PhotoImage(file = root + "/Psswd_Design/Fichier.PNG/Boutons&Messages/supprime.png")
+			self.canvas.create_image(770, 639.904, anchor = "c", image = self.erreur_txt)
+			self.canvas.forget()
+			self.mainmenu()
+
+
+		except:
+			print(Fore.RED + "\nVous n'avez pas enregistré d'informations pour ce site !")
+			print(Fore.RESET)
+		
+
+
+			return
+	
+	def modifier_identifiant(self):
+		site = self.entry1.get()
+		mail = self.entry2.get()
+		mdp = self.entry3.get()
+		print(site, mail, mdp)
+
+		if site == "" or mail == "" or mdp == "":
+				print("Rentrez des trucs dans les cases !")
+				self.erreur_txt = PhotoImage(file = root + "/Psswd_Design/Fichier.PNG/Boutons&Messages/remplir_tout.png")
+				self.canvas.create_image(770, 639.904, anchor = "c", image = self.erreur_txt)
+
+				return
+
+		mdp = mdp.encode("utf-8")
+		mdp = psswd.f.encrypt(mdp)
+		mdp = mdp.decode("utf-8")
+
+		try:
+			psswd.cursor.execute("UPDATE " + psswd.nom + " SET mail = %s, mdp = %s WHERE id LIKE %s;",(mail, mdp, site))
+			psswd.conn.commit()
+			self.erreur_txt = PhotoImage(file = root + "/Psswd_Design_2/Fichier.PNG/enregistre.png")
+			self.canvas.create_image(770, 639.904, anchor = "c", image = self.erreur_txt)
+
+
+		except:
+			print(Fore.RED + "\nVous n'avez pas enregistré d'informations pour ce site !")
+			print(Fore.RESET)
+		
+
+			return
+
+	def generer_identifiant(self):
+		
+		self.entry3.delete(0, "end")
+		
+
+
+		digits = string.digits
+		lettres = string.ascii_letters
+		char_speciaux = string.punctuation
+
+		charset = digits + lettres + char_speciaux
+		mdp_gen = "".join(random.sample(charset, 12))
+		self.entry3.insert(0, mdp_gen)
+
+	def retour_bouton(self):
+		self.canvas.forget()
+		self.mainmenu()
+		print("Test1")
+	
+
+
+
+### On lance le tout ###
+
+try:
+	psswd()
+
+except Exception as erreur:
+	logging.exception("")
+	erreur = str(erreur)
+	txt = open(root + "/debug", "w")
+	txt.write(erreur)
+	txt.close()
