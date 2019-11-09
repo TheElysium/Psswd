@@ -2,6 +2,7 @@
 import os
 import sys
 
+
 if getattr(sys, 'frozen', False):
     # frozen
     root = os.path.dirname(sys.executable)
@@ -10,10 +11,11 @@ else:
     root = os.path.dirname(os.path.realpath(__file__))
 
 #Récupère le chemin vers le dossier où se trouve le .py
+
 path = os.path.join(root)
 
 try:
-	#Modules
+	#Importation des modules
 	from tkinter import *
 	from getpass import getpass
 	from colorama import init
@@ -38,7 +40,7 @@ except Exception as erreur:
 
 
 class psswd:
-
+	#variables globales 
 	cursor = ""
 	conn = ""
 	nom = ""
@@ -48,7 +50,7 @@ class psswd:
 	site_liste = []
 	nom_site = ""
 
-#Essaye de récuperer la clé de cryptage, la créé si elle n'existe pas.
+	#Essaye de récuperer la clé de chiffrement, la créé si elle n'existe pas.
 	try:
 		path = os.path.join("cle")
 		path = os.path.join(root, path)
@@ -141,7 +143,7 @@ class psswd:
 			self.mdp.delete(0, "end")
 
 	
-#COnnexion en tant qu'administrateur pour ajouter un nouvel utilisateur.
+#Connexion en tant qu'administrateur pour ajouter un nouvel utilisateur.
 
 	def login_root_window(self):
 		self.canvas.forget()
@@ -223,6 +225,7 @@ class psswd:
 		self.ajouter.place(anchor = "c", width = 269.51 , height = 75.35, x = 514.775, y = 661.229 )
 
 	def ajouter_utilisateur(self):
+		#Récupération du contenu saisi dans les entrées.
 		self.nom = self.nom_entry.get()
 		print(type(self.nom))
 		self.mdp = self.mdp_entry.get()
@@ -252,7 +255,7 @@ class psswd:
 			self.login_window()
 
 		except:
-			print(Fore.RED + "Mauvais identifiant ou mot de passe !")
+			print(Fore.RED + "Utilisateur déja existant !")
 			print(Fore.RESET)
 
 			self.nom_entry.delete(0, "end")
@@ -275,26 +278,30 @@ class psswd:
 		self.canvas.create_image(width/2, height/2, image = self.image)
 		self.canvas.pack()
 		
+		#Récupère les 4 premiers identifiants de l'utilisateur dans l'ordre alphabétique.
+		#psswd.mdp_all contient TOUT les sites, qui nous permetteront de récuperer les identifiants par la suite.
+		
 		psswd.cursor.execute("SELECT id FROM " + psswd.nom )
 		psswd.mdp_all = psswd.cursor.fetchall()
-
+		
 		self.coordy = 273.5
 
 	
 		self.bouton_afficher = PhotoImage(file = root + "/Psswd_Design_2/Fichier.PNG/bouton_afficher.png")
 
 
-		
+		#Affiche les 4 identifiants
 
-		for i in range (0, 	psswd.incr ):
+		for i in range (0, psswd.incr ):
 		
 			self.identifiants = psswd.mdp_all[i]
 			site = self.identifiants[0]
 			psswd.site_liste.append(site)
 			print(site)
+			#On ajoute les boutons créés dans la liste bouton_liste
 			psswd.bouton_liste.append(Button(self.canvas,name = site, text = site, font = ("Myriad Pro", 15), fg = "White", image = self.bouton_afficher, compound = "center",\
 			 bg = "#162c3a", activebackground = "#162c3a",highlightthickness = 0, bd = 0 , command =  lambda site_nom = site: self.affichage(site_nom)))
-        
+        		#Le lambda sert à faire passer le nom_site dans la commande.
 			
 
 		for i in range (0, psswd.incr ):
@@ -304,10 +311,12 @@ class psswd:
 			self.coordy = self.coordy + 111.7
 
 
-
+		#Boutons, champs de saisie composant la page principale
+		
 		self.image2 = PhotoImage(file = root + "/Psswd_Design_2/Fichier.PNG/psswd_output.png")
 		self.canvas.create_image(769.5, 445.5, anchor = "c", image = self.image2)
 		
+		#Champs de saisie
 		self.entry1 = Entry(self.canvas, justify = "center", bg = "White", highlightthickness = 0, bd = 0)
 		self.entry1.place(anchor = "c", width = 193 , height = 19, x = 770.5, y = 311.5)
 
@@ -317,7 +326,7 @@ class psswd:
 		self.entry3 = Entry(self.canvas, justify = "center", bg = "White", highlightthickness = 0, bd = 0)
 		self.entry3.place(anchor = "c", width = 193 , height = 19, x = 770.5, y = 478.5)
 
-	
+		#Boutons
 		self.ajouter = Button(self.canvas, bg = "#1e394b", activebackground = "#1e394b", highlightthickness = 0, bd = 0, command = self.ajouter_identifiants)
 		self.bouton_ajouter = PhotoImage(file = root + "/Psswd_Design_2/Fichier.PNG/bouton_ajouter.png")
 		self.ajouter.config(image = self.bouton_ajouter)
@@ -348,12 +357,13 @@ class psswd:
 		self.scrolldown.config(image = self.bouton_scrolldown, command = self.aff_scrolldown)	
 		self.scrolldown.place(anchor = "c", x = 254.663, y = 690.497 )
 
+	
+	#Affichage la page contenant les identifiants suivants. Une page contient 4 identifiants.
 
+	
 	def aff_scrolldown(self):
 		
-
 		self.coordy = 273.5
-
 
 		self.coordy = self.coordy + 117.5
 		modulo = len(self.mdp_all) % 4 
@@ -361,19 +371,21 @@ class psswd:
 		print(len(self.mdp_all))
 		print(psswd.incr)
 	
-
+		#Si il y a moins de 4 identifiants à afficher pour la page suivante: 
 		if modulo != 0 and (len(self.mdp_all) == (psswd.incr + modulo)):
-
+			#On supprime les anciens boutons correspondant aux identifiants
 			for bouton in self.bouton_liste:
-
 				bouton.destroy()
-
+		
+			#On réinitialise la liste afin d'y insérer les nouveau boutons.
 			psswd.bouton_liste = []
 			print(1)
 			psswd.incr = psswd.incr + 4
 
 			self.coordy = 273.5
-
+			
+			#On créé les boutons pour les identifiants allant de x - 4 à x - 4 + modulo
+			#Exemple: Si modulo = 2, et que x = 8, alors les identifiants allant de 4 à 6 seront affichés.
 			for i in range (psswd.incr - 4, psswd.incr - 4 + modulo):
 				print(i)
 
@@ -392,9 +404,11 @@ class psswd:
 
 				self.coordy = self.coordy + 111.7
 
+		#Si il n'y a aucun identifiants à afficher sur la page suivante
 		elif psswd.incr > len(self.mdp_all):
 			return
-
+	
+		#Si la longueur de la liste mdp_all est supérieure ou égale à incr + 4, c'est à dire que 4 identifiants pouront être affichés:
 		elif len(self.mdp_all) >= psswd.incr + 4:
 
 			for bouton in self.bouton_liste:
@@ -427,6 +441,7 @@ class psswd:
 		else:
 			print("?")
 
+	#Affiche la page précedente. Même principe qu'aff_scrollup, sauf que l'on décrémente incr
 	def aff_scrollup(self):
 	
 		if psswd.incr - 4 <= 0:
@@ -478,6 +493,7 @@ class psswd:
 		self.entry2.delete(0, "end")
 		self.entry3.delete(0, "end")
 		
+		#On vient sélectionner les identifiants correspondant au site_nom
 		try:
 			psswd.cursor.execute("SELECT id, mail, mdp FROM " + psswd.nom + " WHERE id LIKE %s ORDER BY id;",(site_nom,))
 			information = psswd.cursor.fetchone()
@@ -488,12 +504,13 @@ class psswd:
 			print(Fore.RESET)
 		
 
-
+			
 			self.site_entry.delete(0, "end")
 			self.mail_entry.delete(0, "end")
 			self.mdp_entry.delete(0, "end")
 			return
 
+		#Déchiffrement du mot de passe
 		try:
 			mdp = mdp.encode("utf-8")
 			mdp = psswd.f.decrypt(mdp)
@@ -502,6 +519,7 @@ class psswd:
 			print(fichier)
 			print(Fore.RESET)
 
+			#Insertion dans les champs de saisie
 			self.entry1.insert(0, site_nom)
 			self.entry2.insert(0, information[1])
 
@@ -516,44 +534,43 @@ class psswd:
 			self.entry3.delete(0, "end")
 
 	def ajouter_identifiants(self):
-				site = self.entry1.get()
-				mail = self.entry2.get()
-				mdp = self.entry3.get()
-				print(mdp, mail, mdp)
+		site = self.entry1.get()
+		mail = self.entry2.get()
+		mdp = self.entry3.get()
+		print(mdp, mail, mdp)
 
-				if site == "" or mail == "" or mdp == "":
-					print("Rentrez des trucs dans les cases !")
-					self.erreur_txt = PhotoImage(file = root + "/Psswd_Design_2/Fichier.PNG/remplir_tout.png")
-					self.canvas.create_image(770, 639.904, anchor = "c", image = self.erreur_txt)
+		if site == "" or mail == "" or mdp == "":
+			print("Rentrez des trucs dans les cases !")
+			self.erreur_txt = PhotoImage(file = root + "/Psswd_Design_2/Fichier.PNG/remplir_tout.png")
+			self.canvas.create_image(770, 639.904, anchor = "c", image = self.erreur_txt)
 
-					return
-					
-				mdp = mdp.encode("utf-8")
-				mdp = psswd.f.encrypt(mdp)
-				mdp = mdp.decode("utf-8")
-				try:
-					psswd.cursor.execute("INSERT INTO " + psswd.nom + " VALUES (%s, %s, %s)", (site, mail, mdp))
-					psswd.conn.commit()
-					print(Fore.BLUE + "Vos informations ont été enregitrées !")
-					print(Fore.RESET)
+			return
 
-					self.erreur_txt = PhotoImage(file = root + "/Psswd_Design_2/Fichier.PNG/enregistre.png")
-					self.canvas.create_image(770, 639.904, anchor = "c", image = self.erreur_txt)
-				except:
-					self.erreur_txt = PhotoImage(file = root + "/Psswd_Design_2/Fichier.PNG/deja_existant.png")
-					self.canvas.create_image(770, 639.904, anchor = "c", image = self.erreur_txt)
-				
-				self.entry1.delete(0, "end")
-				self.entry2.delete(0, "end")
-				self.entry3.delete(0, "end")
+		mdp = mdp.encode("utf-8")
+		mdp = psswd.f.encrypt(mdp)
+		mdp = mdp.decode("utf-8")
+		
+		try:
+			psswd.cursor.execute("INSERT INTO " + psswd.nom + " VALUES (%s, %s, %s)", (site, mail, mdp))
+			psswd.conn.commit()
+			print(Fore.BLUE + "Vos informations ont été enregitrées !")
+			print(Fore.RESET)
 
-#				self.canvas.forget()
-#				self.mainmenu()
+			self.erreur_txt = PhotoImage(file = root + "/Psswd_Design_2/Fichier.PNG/enregistre.png")
+			self.canvas.create_image(770, 639.904, anchor = "c", image = self.erreur_txt)
+		except:
+			self.erreur_txt = PhotoImage(file = root + "/Psswd_Design_2/Fichier.PNG/deja_existant.png")
+			self.canvas.create_image(770, 639.904, anchor = "c", image = self.erreur_txt)
+
+		self.entry1.delete(0, "end")
+		self.entry2.delete(0, "end")
+		self.entry3.delete(0, "end")
+
 
 	def supprimer_identifiant(self):
 
 		self.site = self.entry1.get()
-
+		#Suppression de l'identifiant
 		try:
 			self.cursor.execute("DELETE FROM " + psswd.nom + " WHERE id LIKE %s;",(self.site,))
 			self.conn.commit()
@@ -566,9 +583,6 @@ class psswd:
 		except:
 			print(Fore.RED + "\nVous n'avez pas enregistré d'informations pour ce site !")
 			print(Fore.RESET)
-		
-
-
 			return
 	
 	def modifier_identifiant(self):
@@ -579,7 +593,7 @@ class psswd:
 
 		if site == "" or mail == "" or mdp == "":
 				print("Rentrez des trucs dans les cases !")
-				self.erreur_txt = PhotoImage(file = root + "/Psswd_Design/Fichier.PNG/Boutons&Messages/remplir_tout.png")
+				self.erreur_txt = PhotoImage(file = root + "/Psswd_Design_2/Fichier.PNG/remplir_tout.png")
 				self.canvas.create_image(770, 639.904, anchor = "c", image = self.erreur_txt)
 
 				return
@@ -587,7 +601,8 @@ class psswd:
 		mdp = mdp.encode("utf-8")
 		mdp = psswd.f.encrypt(mdp)
 		mdp = mdp.decode("utf-8")
-
+		#Met à jour les identifiants
+		
 		try:
 			psswd.cursor.execute("UPDATE " + psswd.nom + " SET mail = %s, mdp = %s WHERE id LIKE %s;",(mail, mdp, site))
 			psswd.conn.commit()
